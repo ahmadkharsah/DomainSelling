@@ -55,7 +55,12 @@ Preferred communication style: Simple, everyday language.
 **Database Schema Design**: Drizzle ORM is configured for PostgreSQL with two main tables:
 
 1. **users table**: Stores user credentials with UUID primary keys
-2. **contact_submissions table**: Stores domain offer submissions with fields for full name, email, offer amount, optional message, and submission timestamp
+2. **contact_submissions table**: Stores domain offer submissions with fields for:
+   - full name (required)
+   - email (required, validated format)
+   - offer amount (required, minimum $500)
+   - message (optional, max 2000 characters)
+   - submission timestamp
 
 **Schema Validation**: Drizzle-Zod integration provides automatic Zod schema generation from database schema, maintaining a single source of truth for data validation.
 
@@ -70,10 +75,13 @@ Preferred communication style: Simple, everyday language.
 **Email Templates**: Server-rendered HTML email templates using template literals. The `createOfferEmailHTML` function generates formatted emails with submission details in a responsive table layout.
 
 **Email Flow**: When a contact form is submitted, the system:
-1. Validates the submission
-2. Stores it in the database
-3. Sends a formatted email notification to the configured recipient
+1. Validates the submission (including honeypot spam check)
+2. Stores it in memory (in-memory storage for development)
+3. Sends a formatted HTML email notification via Resend API to the configured recipient
 4. Uses the submitter's email as the reply-to address for easy follow-up
+5. Returns success (201) only if email sends successfully; any email delivery failure returns error (500) to user
+
+**Error Handling**: Email delivery errors properly propagate to the frontend, showing error messages via toast notifications rather than false success confirmations.
 
 ### Design System
 
@@ -87,10 +95,17 @@ Preferred communication style: Simple, everyday language.
 **Layout Constraints**: Max-width container (max-w-2xl) centered on the page, optimized for form-focused experience rather than wide content layouts.
 
 **Component Architecture**: Modular component structure with separate components for:
-- DomainHero: Large domain name display with tagline
-- ValueProposition: Benefits list with icons
-- ContactForm: Form with validation and submission handling
+- DomainHero: Large domain name display with gradient text effect and tagline
+- ValueProposition: Benefits list with icons (icons use foreground color for consistency)
+- ContactForm: Form with comprehensive validation, submission handling, success confirmation, and reset functionality to submit multiple offers
 - Footer: Simple copyright footer
+
+**User Experience Features**:
+- Form submission shows loading state with spinner
+- Success confirmation displays "Thank You" message with next steps
+- "Submit Another Offer" button resets form for additional submissions
+- Inline validation errors guide users to correct issues
+- Toast notifications for submission errors
 
 ## External Dependencies
 
