@@ -35,28 +35,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const submission = await storage.createContactSubmission(data);
 
-      try {
-        const { client, fromEmail } = await getUncachableResendClient();
-        
-        const emailHtml = createOfferEmailHTML({
-          fullName: data.fullName,
-          email: data.email,
-          offerAmount: data.offerAmount,
-          message: data.message,
-        });
+      const { client, fromEmail } = await getUncachableResendClient();
+      
+      const emailHtml = createOfferEmailHTML({
+        fullName: data.fullName,
+        email: data.email,
+        offerAmount: data.offerAmount,
+        message: data.message,
+      });
 
-        await client.emails.send({
-          from: fromEmail,
-          to: fromEmail,
-          replyTo: data.email,
-          subject: "Domain Selling: Offer",
-          html: emailHtml,
-        });
+      await client.emails.send({
+        from: fromEmail,
+        to: fromEmail,
+        replyTo: data.email,
+        subject: "Domain Selling: Offer",
+        html: emailHtml,
+      });
 
-        console.log("Email sent successfully for submission:", submission.id);
-      } catch (emailError) {
-        console.error("Error sending email:", emailError);
-      }
+      console.log("Email sent successfully for submission:", submission.id);
 
       return res.status(201).json({ 
         success: true, 
