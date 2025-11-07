@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
 import { insertContactSubmissionSchema, type InsertContactSubmission } from '@shared/schema';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ContactForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<InsertContactSubmission>({
     resolver: zodResolver(insertContactSubmissionSchema),
@@ -22,14 +25,31 @@ export default function ContactForm() {
     },
   });
 
-  const onSubmit = async (data: InsertContactSubmission) => {
-    setIsSubmitting(true);
-    console.log('Form submitted:', data);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
+  const submitMutation = useMutation({
+    mutationFn: async (data: InsertContactSubmission) => {
+      const response = await apiRequest('POST', '/api/contact', data);
+      return response.json();
+    },
+    onSuccess: () => {
       setIsSubmitted(true);
-    }, 1500);
+    },
+    onError: (error: any) => {
+      console.error('Submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: error.message || "There was an error submitting your offer. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = async (data: InsertContactSubmission) => {
+    submitMutation.mutate(data);
+  };
+
+  const handleReset = () => {
+    setIsSubmitted(false);
+    form.reset();
   };
 
   if (isSubmitted) {
@@ -42,9 +62,17 @@ export default function ContactForm() {
             <p className="text-muted-foreground mb-4">
               Your offer has been received successfully. We'll review your submission and get back to you within 24-48 hours.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-6">
               Please check your email for confirmation.
             </p>
+            <Button 
+              onClick={handleReset}
+              variant="outline"
+              className="mt-4"
+              data-testid="button-reset"
+            >
+              Submit Another Offer
+            </Button>
           </div>
         </div>
       </section>
@@ -151,13 +179,13 @@ export default function ContactForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium">
-                    Message <span className="text-primary">*</span>
+                    Message
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
                       rows={6}
-                      placeholder="Tell us about your interest in this domain and how you plan to use it..."
+                      placeholder="Tell us about your interest in this domain and how you plan to use it... (optional)"
                       className="px-4 py-3 bg-transparent border-2 border-input focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
                       data-testid="input-message"
                     />
@@ -169,11 +197,11 @@ export default function ContactForm() {
 
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={submitMutation.isPending}
               className="w-full py-4 text-base font-semibold tracking-wide"
               data-testid="button-submit"
             >
-              {isSubmitting ? (
+              {submitMutation.isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Submitting...

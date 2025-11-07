@@ -28,7 +28,7 @@ export default function ValueProposition() {
             <div key={index} className="flex gap-4">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 rounded-md bg-primary/10 border-2 border-primary flex items-center justify-center">
-                  <benefit.icon className="w-6 h-6 text-primary" />
+                  <benefit.icon className="w-6 h-6 text-foreground" />
                 </div>
               </div>
               <div>

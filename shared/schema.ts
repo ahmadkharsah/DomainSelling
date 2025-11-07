@@ -22,7 +22,7 @@ export const contactSubmissions = pgTable("contact_submissions", {
   fullName: text("full_name").notNull(),
   email: text("email").notNull(),
   offerAmount: integer("offer_amount").notNull(),
-  message: text("message").notNull(),
+  message: text("message"),
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
@@ -33,7 +33,7 @@ export const insertContactSubmissionSchema = createInsertSchema(contactSubmissio
   fullName: z.string().min(2, "Full name must be at least 2 characters").max(100, "Full name is too long"),
   email: z.string().email("Please enter a valid email address"),
   offerAmount: z.number().min(500, "Minimum offer is $500 USD"),
-  message: z.string().min(10, "Message must be at least 10 characters").max(2000, "Message is too long"),
+  message: z.string().max(2000, "Message is too long").optional(),
 });
 
 export type InsertContactSubmission = z.infer<typeof insertContactSubmissionSchema>;
