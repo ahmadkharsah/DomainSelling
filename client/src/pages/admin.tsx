@@ -10,18 +10,30 @@ import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, Eye, EyeOff } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type SiteConfigForm = z.infer<typeof insertSiteConfigSchema>;
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
 export default function Admin() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [showApiKey, setShowApiKey] = useState(false);
 
-  const { data: config, isLoading } = useQuery<Omit<SiteConfig, "resendApiKey">>({
+  const { data: config, isLoading } = useQuery<SiteConfig>({
     queryKey: ["/api/site-config"],
   });
 
@@ -46,6 +58,30 @@ export default function Admin() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: ChangePasswordForm) => {
+      const res = await apiRequest("POST", "/api/change-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      passwordForm.reset();
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const form = useForm<SiteConfigForm>({
     resolver: zodResolver(insertSiteConfigSchema),
     defaultValues: {
@@ -57,6 +93,15 @@ export default function Admin() {
     },
   });
 
+  const passwordForm = useForm<ChangePasswordForm>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   useEffect(() => {
     if (config) {
       form.reset({
@@ -64,7 +109,7 @@ export default function Admin() {
         backgroundColor: config.backgroundColor,
         accentColor: config.accentColor,
         fontColor: config.fontColor,
-        resendApiKey: "",
+        resendApiKey: config.resendApiKey || "",
       });
     }
   }, [config]);
@@ -79,6 +124,10 @@ export default function Admin() {
 
   const onSubmit = (data: SiteConfigForm) => {
     updateConfigMutation.mutate(data);
+  };
+
+  const onPasswordSubmit = (data: ChangePasswordForm) => {
+    changePasswordMutation.mutate(data);
   };
 
   const handleLogout = () => {
@@ -238,12 +287,31 @@ export default function Admin() {
                       <FormItem>
                         <FormLabel>Resend API Key (Optional)</FormLabel>
                         <FormControl>
-                          <Input
-                            {...field}
-                            type="password"
-                            data-testid="input-resend-api-key"
-                            placeholder="Enter Resend API key"
-                          />
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showApiKey ? "text" : "password"}
+                              data-testid="input-resend-api-key"
+                              placeholder="Enter Resend API key"
+                              className="pr-10"
+                            />
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                data-testid="button-toggle-api-key"
+                              >
+                                {showApiKey ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -271,6 +339,88 @@ export default function Admin() {
                       View Site
                     </Button>
                   </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle data-testid="text-password-title">Change Password</CardTitle>
+              <CardDescription data-testid="text-password-description">
+                Update your admin account password
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            data-testid="input-current-password"
+                            placeholder="Enter current password"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            data-testid="input-new-password"
+                            placeholder="Enter new password (min 6 characters)"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            data-testid="input-confirm-password"
+                            placeholder="Re-enter new password"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    data-testid="button-change-password"
+                    disabled={changePasswordMutation.isPending}
+                  >
+                    {changePasswordMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Change Password
+                  </Button>
                 </form>
               </Form>
             </CardContent>
