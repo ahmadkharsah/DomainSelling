@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 type SiteConfigForm = z.infer<typeof insertSiteConfigSchema>;
 
@@ -56,22 +57,24 @@ export default function Admin() {
     },
   });
 
+  useEffect(() => {
+    if (config) {
+      form.reset({
+        domainName: config.domainName,
+        backgroundColor: config.backgroundColor,
+        accentColor: config.accentColor,
+        fontColor: config.fontColor,
+        resendApiKey: "",
+      });
+    }
+  }, [config]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
       </div>
     );
-  }
-
-  if (config && !form.formState.isDirty) {
-    form.reset({
-      domainName: config.domainName,
-      backgroundColor: config.backgroundColor,
-      accentColor: config.accentColor,
-      fontColor: config.fontColor,
-      resendApiKey: "",
-    });
   }
 
   const onSubmit = (data: SiteConfigForm) => {
