@@ -6,6 +6,28 @@ This is a single-page application designed to showcase and sell a premium domain
 
 The application serves as a domain sale landing page where visitors can view the domain's value proposition and submit purchase offers through a validated contact form.
 
+## Admin Panel
+
+**Access**: Protected admin panel available at `/admin` (requires authentication)
+
+**Default Credentials**:
+- Username: `admin`
+- Password: `admin123`
+
+**Configurable Settings**:
+- Domain Name: The domain displayed prominently on the landing page
+- Background Color: Page background color (hex format, e.g., #FFFFFF)
+- Accent Color: Used in gradient effects for the domain name display
+- Font Color: Text color applied across the entire landing page
+- Resend API Key: Optional email service API key for contact form submissions
+
+**Features**:
+- Session-based authentication with secure password hashing
+- Protected routes that automatically redirect to login when not authenticated
+- Real-time configuration updates that immediately reflect on the landing page
+- Responsive admin interface for mobile, tablet, and desktop
+- Logout functionality to end admin sessions
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -28,7 +50,16 @@ Preferred communication style: Simple, everyday language.
 
 **State Management**: TanStack Query (React Query) for server state management, providing caching, background updates, and optimistic UI updates for the contact form submission.
 
-**Routing**: Wouter for lightweight client-side routing (currently minimal with just home and 404 pages).
+**Routing**: Wouter for lightweight client-side routing with the following pages:
+- `/` - Public landing page
+- `/login` - Admin authentication page
+- `/admin` - Protected admin panel (requires login)
+- `404` - Not found page
+
+**Authentication**: Custom authentication system with:
+- `useAuth` hook for accessing user state and authentication mutations
+- `ProtectedRoute` component for route guards
+- Session persistence using express-session with in-memory store
 
 ### Backend Architecture
 
@@ -36,15 +67,25 @@ Preferred communication style: Simple, everyday language.
 
 **Development Setup**: Custom Vite integration for hot module replacement during development. In production, the server serves pre-built static assets from the dist directory.
 
-**API Design**: RESTful API endpoint (`POST /api/contact`) with rate limiting (3 requests per 15 minutes) to prevent spam and abuse.
+**API Design**: RESTful API with the following endpoints:
+- `POST /api/contact` - Submit domain purchase offer (rate limited: 3 requests per 15 minutes)
+- `POST /api/login` - Authenticate admin user
+- `POST /api/logout` - End admin session
+- `POST /api/register` - Register new admin user
+- `GET /api/user` - Get current authenticated user
+- `GET /api/site-config` - Fetch site configuration (public)
+- `PUT /api/site-config` - Update site configuration (requires authentication)
 
 **Validation**: Server-side validation using Zod schemas shared between frontend and backend through the `shared` directory, ensuring consistent validation rules across the stack.
 
 **Data Storage Strategy**: Abstracted storage interface (`IStorage`) with an in-memory implementation (`MemStorage`) for development. The interface is designed to be easily swapped for database implementations without changing application logic.
 
 **Security Measures**: 
-- Honeypot field for spam detection
-- Rate limiting on form submissions
+- Password hashing using scrypt algorithm for admin credentials
+- Session-based authentication with secure session management
+- Protected API routes requiring authentication
+- Honeypot field for spam detection on contact form
+- Rate limiting on contact form submissions (3 per 15 minutes)
 - Request body parsing with raw body preservation for potential webhook verification
 - CORS and security headers through Express middleware
 
@@ -52,15 +93,21 @@ Preferred communication style: Simple, everyday language.
 
 **Current Implementation**: In-memory storage using Map data structures for user and contact submission data. This is suitable for development but requires database migration for production.
 
-**Database Schema Design**: Drizzle ORM is configured for PostgreSQL with two main tables:
+**Database Schema Design**: Drizzle ORM is configured for PostgreSQL with three main tables:
 
-1. **users table**: Stores user credentials with UUID primary keys
+1. **users table**: Stores admin credentials with UUID primary keys and hashed passwords
 2. **contact_submissions table**: Stores domain offer submissions with fields for:
    - full name (required)
    - email (required, validated format)
    - offer amount (required, minimum $500)
    - message (optional, max 2000 characters)
    - submission timestamp
+3. **site_config table**: Stores site configuration with fields for:
+   - domain name (displayed on landing page)
+   - background color (hex format)
+   - accent color (hex format)
+   - font color (hex format)
+   - Resend API key (optional)
 
 **Schema Validation**: Drizzle-Zod integration provides automatic Zod schema generation from database schema, maintaining a single source of truth for data validation.
 
@@ -95,10 +142,15 @@ Preferred communication style: Simple, everyday language.
 **Layout Constraints**: Max-width container (max-w-2xl) centered on the page, optimized for form-focused experience rather than wide content layouts.
 
 **Component Architecture**: Modular component structure with separate components for:
-- DomainHero: Large domain name display with gradient text effect and tagline
+- DomainHero: Large domain name display with gradient text effect and tagline (accepts dynamic domain name and accent color from site config)
 - ValueProposition: Benefits list with icons (icons use foreground color for consistency)
 - ContactForm: Form with comprehensive validation, submission handling, success confirmation, and reset functionality to submit multiple offers
 - Footer: Simple copyright footer
+
+**Admin Components**:
+- Login: Responsive login form with username/password authentication
+- Admin: Protected admin panel with site configuration form, color pickers, and live updates
+- ProtectedRoute: Route guard component that redirects to login when not authenticated
 
 **User Experience Features**:
 - Form submission shows loading state with spinner
@@ -106,6 +158,9 @@ Preferred communication style: Simple, everyday language.
 - "Submit Another Offer" button resets form for additional submissions
 - Inline validation errors guide users to correct issues
 - Toast notifications for submission errors
+- Dynamic site customization through admin panel
+- Real-time configuration updates that immediately affect the landing page
+- Responsive design for all pages (mobile, tablet, desktop)
 
 ## External Dependencies
 
@@ -127,6 +182,13 @@ Preferred communication style: Simple, everyday language.
 - react-hook-form - Form state management
 - zod - Schema validation
 - @hookform/resolvers - Integration between react-hook-form and zod
+
+**Authentication & Security**:
+- passport - Authentication middleware
+- passport-local - Username/password authentication strategy
+- express-session - Session management
+- memorystore - In-memory session store for development
+- scrypt - Password hashing (built-in Node.js crypto module)
 
 **Data Management**:
 - @tanstack/react-query - Server state management
