@@ -1,3 +1,155 @@
+export function createThankYouEmailHTML(data: {
+  fullName: string;
+  offerAmount: number;
+  message?: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thank you for your offer</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header {
+      background-color: #1D546C;
+      color: #F4F4F4;
+      padding: 24px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 32px 24px;
+    }
+    .content p {
+      margin: 0 0 16px 0;
+      color: #555555;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e5e5;
+      font-size: 14px;
+      color: #333333;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .offer-amount {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1D546C;
+    }
+    .message-box {
+      background-color: #f8f9fa;
+      border-left: 4px solid #1D546C;
+      padding: 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .highlight-box {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 16px;
+      margin: 24px 0;
+      border-radius: 4px;
+    }
+    .footer {
+      background-color: #f8f9fa;
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #888888;
+      border-top: 1px solid #e5e5e5;
+    }
+    @media only screen and (max-width: 600px) {
+      .container {
+        margin: 0;
+        border-radius: 0;
+      }
+      .content {
+        padding: 24px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Thank you for your offer</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${escapeHtml(data.fullName)},</p>
+      
+      <p>Thank you for your interest in acquiring our premium domain. We have received your offer and wanted to confirm the details:</p>
+      
+      <table>
+        <tr>
+          <td><strong>Offer Amount</strong></td>
+          <td class="offer-amount">$${data.offerAmount.toLocaleString('en-US')}</td>
+        </tr>
+        <tr>
+          <td><strong>Submitted</strong></td>
+          <td>${new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</td>
+        </tr>
+      </table>
+      
+      ${data.message ? `
+      <div>
+        <strong style="font-size: 14px; color: #333333;">Your Message:</strong>
+        <div class="message-box">
+          ${escapeHtml(data.message).replace(/\n/g, '<br>')}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div class="highlight-box">
+        <p style="margin: 0; font-size: 15px;">
+          <strong>📧 We will review your offer and get back to you within 48 hours.</strong>
+        </p>
+      </div>
+      
+      <p>We appreciate your interest and look forward to discussing this opportunity with you.</p>
+      
+      <p style="margin-top: 24px;">Best regards,<br>The Domain Team</p>
+    </div>
+    <div class="footer">
+      <p>This is an automated confirmation email. Please do not reply directly to this message.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
 export function createOfferEmailHTML(data: {
   fullName: string;
   email: string;
