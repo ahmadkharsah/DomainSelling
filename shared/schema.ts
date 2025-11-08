@@ -38,3 +38,25 @@ export const insertContactSubmissionSchema = createInsertSchema(contactSubmissio
 
 export type InsertContactSubmission = z.infer<typeof insertContactSubmissionSchema>;
 export type ContactSubmission = typeof contactSubmissions.$inferSelect;
+
+export const siteConfig = pgTable("site_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  domainName: text("domain_name").notNull(),
+  backgroundColor: text("background_color").notNull(),
+  accentColor: text("accent_color").notNull(),
+  fontColor: text("font_color").notNull(),
+  resendApiKey: text("resend_api_key"),
+});
+
+export const insertSiteConfigSchema = createInsertSchema(siteConfig).omit({
+  id: true,
+}).extend({
+  domainName: z.string().min(1, "Domain name is required").max(100, "Domain name is too long"),
+  backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  fontColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  resendApiKey: z.string().optional(),
+});
+
+export type InsertSiteConfig = z.infer<typeof insertSiteConfigSchema>;
+export type SiteConfig = typeof siteConfig.$inferSelect;

@@ -1,10 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, insertSiteConfigSchema } from "@shared/schema";
 import { getUncachableResendClient } from "./lib/resend";
 import { createOfferEmailHTML } from "./lib/emailTemplates";
 import rateLimit from "express-rate-limit";
+import { setupAuth } from "./auth";
+import { hashPassword } from "./auth";
 
 const contactLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -15,6 +17,68 @@ const contactLimiter = rateLimit({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  setupAuth(app);
+
+  const ensureInitialized = async () => {
+    const existingConfig = await storage.getSiteConfig();
+    if (!existingConfig) {
+      await storage.updateSiteConfig({
+        domainName: "YourDomain.com",
+        backgroundColor: "#FFFFFF",
+        accentColor: "#000000",
+        fontColor: "#000000",
+        resendApiKey: undefined,
+      });
+    }
+
+    const adminUser = await storage.getUserByUsername("admin");
+    if (!adminUser) {
+      await storage.createUser({
+        username: "admin",
+        password: await hashPassword("admin123"),
+      });
+    }
+  };
+
+  await ensureInitialized();
+
+  app.get("/api/site-config", async (req, res) => {
+    try {
+      const config = await storage.getSiteConfig();
+      if (!config) {
+        return res.status(404).json({ error: "Site configuration not found" });
+      }
+      const { resendApiKey, ...publicConfig } = config;
+      res.json(publicConfig);
+    } catch (error) {
+      console.error("Error fetching site config:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/site-config", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const validationResult = insertSiteConfigSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.errors 
+        });
+      }
+
+      const updatedConfig = await storage.updateSiteConfig(validationResult.data);
+      const { resendApiKey, ...publicConfig } = updatedConfig;
+      res.json(publicConfig);
+    } catch (error) {
+      console.error("Error updating site config:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/contact", contactLimiter, async (req, res) => {
     try {
       const honeypot = req.body.website;
